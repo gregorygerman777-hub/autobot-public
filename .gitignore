@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.ruff_cache/
+data/sessions/
+data/memory/
+data/output/
+!data/output/pitch-deck/
+/uv.lock
+*.egg-info/
+.env
+.pi/settings.local.json
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Per-tool caches + venvs
+tools/*/data/cache/
+tools/*/.venv/
+
+# Pi local npm install
+.pi/npm/

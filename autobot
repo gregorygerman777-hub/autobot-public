@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# Autobot — personal AI assistant powered by pi.
+#
+# Usage:
+#   autobot                   Interactive session
+#   autobot install            Full setup: submodules, uv, pi, symlink, wizard
+#   autobot [pi args...]       Anything else is passed to pi
+#
+
+set -euo pipefail
+
+# Resolve the real project dir (follows symlinks)
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+PROJECT_DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+
+PI_BIN="$PROJECT_DIR/pi-mono/packages/coding-agent/dist/cli.js"
+
+# Load .env if present (export all vars)
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    . "$PROJECT_DIR/.env"
+    set +a
+fi
+
+case "${1:-}" in
+    install)
+        cd "$PROJECT_DIR"
+
+        # 1. Submodules
+        echo "==> Initializing submodules..."
+        git submodule update --init --recursive
+
+        # 2. Node.js
+        if ! command -v node &>/dev/null; then
+            echo "==> Installing Node.js via nvm..."
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+            export NVM_DIR="${HOME}/.nvm"
+            # shellcheck source=/dev/null
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            nvm install 22
+        fi
+
+        # 3. uv
+        if ! command -v uv &>/dev/null; then
+            echo "==> Installing uv..."
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
+
+        # 4. Build pi
+        echo "==> Building pi from source..."
+        cd "$PROJECT_DIR/pi-mono"
+        npm install
+        npm run build
+        cd "$PROJECT_DIR"
+
+        # 5. Python deps
+        echo "==> Installing Python dependencies..."
+        uv sync
+
+        # 6. Symlink
+        INSTALL_DIR="${HOME}/.local/bin"
+        mkdir -p "$INSTALL_DIR"
+        ln -sf "$PROJECT_DIR/autobot" "$INSTALL_DIR/autobot"
+        echo "==> Installed: $INSTALL_DIR/autobot"
+
+        if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
+            echo ""
+            echo "    Add to your PATH:"
+            echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
+            echo ""
+        fi
+
+        # 7. Setup wizard
+        echo "==> Launching setup wizard..."
+        echo ""
+        exec node "$PI_BIN" --no-session -p "/skill:setup"
+        ;;
+
+    help|--help|-h)
+        sed -n '2,9p' "$0" | sed 's/^#//' | sed 's/^ //'
+        ;;
+
+    *)
+        if [ ! -f "$PI_BIN" ]; then
+            echo "Error: pi not built. Run: autobot install" >&2
+            exit 1
+        fi
+        cd "$PROJECT_DIR"
+        exec node "$PI_BIN" "$@"
+        ;;
+esac

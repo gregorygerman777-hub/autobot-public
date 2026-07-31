@@ -1,0 +1,10 @@
+{
+  "enableSkillCommands": true,
+  "packages": [
+    "npm:pi-web-access",
+    "npm:pi-subagents",
+    "npm:pi-telebridge",
+    "npm:pi-claude-cli",
+    "npm:pi-schedule-prompt"
+  ]
+}

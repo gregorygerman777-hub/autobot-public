@@ -1,0 +1,9 @@
+[submodule "tools/school"]
+	path = tools/school
+	url = https://github.com/Wesius/mycompass-cli.git
+[submodule "tools/soundcloud"]
+	path = tools/soundcloud
+	url = https://github.com/Wesius/soundcloud-cli.git
+[submodule "pi-mono"]
+	path = pi-mono
+	url = https://github.com/Wesius/pi-mono.git
