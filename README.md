@@ -5,8 +5,8 @@ Personal AI assistant powered by [pi](https://github.com/badlogic/pi-mono).
 ## Quick Start
 
 ```bash
-git clone https://github.com/Wesius/autobot.git
-cd autobot
+git clone https://github.com/Wesius/autobot-public.git
+cd autobot-public
 ./autobot install
 ```
 
