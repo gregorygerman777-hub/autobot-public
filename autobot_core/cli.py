@@ -24,8 +24,10 @@ from datetime import date, datetime
 
 from . import actions as act
 from . import trust
+from .loop import build_briefing_loop, build_triage_loop
 from .memory import consolidate as memory_consolidate
 from .memory.consolidate import status as memory_status
+from .schedule import Event
 from .triage import Message, triage_all
 
 
@@ -155,6 +157,91 @@ def _cmd_registry(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_messages(path: str | None) -> list[Message]:
+    raw = json.load(open(path)) if path else json.load(sys.stdin)
+    if isinstance(raw, dict):
+        raw = [raw]
+    messages = []
+    for item in raw:
+        received = item.get("received_at")
+        if isinstance(received, str):
+            try:
+                received = datetime.fromisoformat(received.replace("Z", "+00:00"))
+            except ValueError:
+                received = None
+        messages.append(
+            Message(
+                source=item.get("source", "unknown"),
+                sender=item.get("sender", ""),
+                subject=item.get("subject", ""),
+                body=item.get("body", ""),
+                received_at=received,
+                recipients=item.get("recipients", []) or [],
+                headers=item.get("headers", {}) or {},
+                is_reply=bool(item.get("is_reply", False)),
+                sender_is_known_contact=bool(item.get("sender_is_known_contact", False)),
+            )
+        )
+    return messages
+
+
+def _load_events(path: str | None) -> list[Event]:
+    if not path:
+        return []
+    raw = json.load(open(path))
+    if isinstance(raw, dict):
+        raw = [raw]
+    events = []
+    for item in raw:
+        events.append(
+            Event(
+                title=item.get("title", ""),
+                start=datetime.fromisoformat(item["start"]),
+                end=datetime.fromisoformat(item["end"]),
+                calendar=item.get("calendar", ""),
+                location=item.get("location", ""),
+                attendees=item.get("attendees", []) or [],
+                all_day=bool(item.get("all_day", False)),
+                organizer=item.get("organizer", ""),
+                recurring=bool(item.get("recurring", False)),
+            )
+        )
+    return events
+
+
+def _cmd_run_briefing(args: argparse.Namespace) -> int:
+    events = _load_events(args.events)
+    messages = _load_messages(args.messages) if args.messages else []
+    today = date.fromisoformat(args.today) if args.today else None
+    mode = act.ExecutionMode(args.mode) if args.mode else act.current_mode()
+
+    loop = build_briefing_loop(lambda: events, lambda: messages, mode=mode)
+    trace = loop.run({"today": today})
+
+    payload = trace.to_dict()
+    payload["brief"] = trace.result
+    if args.trace:
+        payload["rendered_trace"] = trace.render()
+    _emit(payload)
+    return 0
+
+
+def _cmd_run_triage(args: argparse.Namespace) -> int:
+    messages = _load_messages(args.messages)
+    today = date.fromisoformat(args.today) if args.today else None
+    mode = act.ExecutionMode(args.mode) if args.mode else act.current_mode()
+
+    loop = build_triage_loop(lambda: messages, mode=mode)
+    trace = loop.run({"today": today})
+
+    payload = trace.to_dict()
+    payload["alert"] = trace.result
+    if args.trace:
+        payload["rendered_trace"] = trace.render()
+    _emit(payload)
+    return 0
+
+
 def _default_memory_root() -> str:
     return "data/memory"
 
@@ -201,6 +288,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_reg = sub.add_parser("registry", help="Dump the action registry")
     p_reg.set_defaults(func=_cmd_registry)
+
+    p_brief = sub.add_parser(
+        "run-briefing", help="Run the daily-briefing ReAct loop"
+    )
+    p_brief.add_argument("--events", default=None, help="Calendar events JSON file")
+    p_brief.add_argument("--messages", default=None, help="Inbound messages JSON file")
+    p_brief.add_argument("--today", default=None, help="Reference date YYYY-MM-DD")
+    p_brief.add_argument("--mode", choices=["interactive", "autonomous"], default=None)
+    p_brief.add_argument("--trace", action="store_true", help="Include rendered trace")
+    p_brief.set_defaults(func=_cmd_run_briefing)
+
+    p_tri = sub.add_parser("run-triage", help="Run the inbox-triage ReAct loop")
+    p_tri.add_argument("--messages", default=None, help="Messages JSON (default stdin)")
+    p_tri.add_argument("--today", default=None)
+    p_tri.add_argument("--mode", choices=["interactive", "autonomous"], default=None)
+    p_tri.add_argument("--trace", action="store_true")
+    p_tri.set_defaults(func=_cmd_run_triage)
 
     p_cons = sub.add_parser(
         "memory-consolidate",

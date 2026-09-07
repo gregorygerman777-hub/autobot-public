@@ -9,6 +9,10 @@ Self-hosted personal AI assistant powered by [pi](https://github.com/badlogic/pi
 - `tools/` — CLI tools (school portal, finance, SoundCloud — legacy Python submodules)
 - `pi-mono/packages/messages/` — macOS Messages (iMessage/SMS) pi extension
 - `pi-mono/packages/notion/` — Notion API pi extension
+- `autobot_core/loop/` — **Reason-act-observe execution loop (ReAct, Yao et al.,
+  2022).** Used by the daily briefing and inbox triage so they can chain: notice
+  a calendar conflict, decide it warrants a message, draft it, all in one run.
+  Blocked actions become proposals for the operator. See `docs/EXECUTION-LOOP.md`
 - `scripts/` — Cron automation (all use `autobot -p`)
 - `pi-mono/` — Local pi source (git submodule from Wesius/pi-mono)
 - `data/memory/` — Persistent filesystem memory (see Memory section)
