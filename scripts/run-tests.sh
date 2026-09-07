@@ -41,3 +41,25 @@ fi
 echo "==> Python: $PYTHON ($("$PYTHON" --version 2>&1))"
 echo "==> Running autobot_core test suite"
 PYTHONPATH="$PROJECT_DIR" "$PYTHON" -m unittest discover -s tests -t "$PROJECT_DIR" "$@"
+
+# The pi extension contract. Loads .pi/extensions/injection-defense/ through
+# jiti -- the same loader pi uses -- and fires real event shapes at it, so the
+# enforcement layer is exercised rather than only syntax-checked. Needs
+# pi-mono's node_modules, so it skips cleanly when the submodule is not built.
+if command -v node >/dev/null 2>&1; then
+    echo ""
+    echo "==> Running extension contract harness"
+    set +e
+    node --experimental-strip-types "$PROJECT_DIR/tests/extension/contract.mjs"
+    harness_status=$?
+    set -e
+    if [ "$harness_status" -eq 2 ]; then
+        echo "    (skipped: pi-mono not installed)"
+    elif [ "$harness_status" -ne 0 ]; then
+        echo "    extension contract FAILED" >&2
+        exit "$harness_status"
+    fi
+else
+    echo ""
+    echo "==> Skipping extension contract harness (node not found)"
+fi

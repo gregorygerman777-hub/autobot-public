@@ -58,6 +58,19 @@ case "${1:-}" in
         cd "$PROJECT_DIR/pi-mono"
         npm install
         npm run build
+
+        # pi-mono's root build script covers tui, ai, agent, coding-agent, mom,
+        # web-ui and pods, but NOT messages or notion. Both are re-exported by
+        # .pi/extensions/{messages,notion}/index.ts, so without these the two
+        # extensions fail to load on every startup with
+        # "Cannot find module '../../../pi-mono/packages/messages/dist/index.js'".
+        for pkg in messages notion; do
+            if [ -d "$PROJECT_DIR/pi-mono/packages/$pkg" ]; then
+                echo "==> Building pi package: $pkg"
+                (cd "$PROJECT_DIR/pi-mono/packages/$pkg" && npm run build)
+            fi
+        done
+
         cd "$PROJECT_DIR"
 
         # 5. Python deps
