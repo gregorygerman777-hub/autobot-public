@@ -6,6 +6,9 @@ __pycache__/
 data/sessions/
 data/memory/
 data/output/
+# Security audit log: contains quoted excerpts of untrusted message
+# content, so it must never be committed. See docs/THREAT-MODEL.md.
+data/logs/
 !data/output/pitch-deck/
 /uv.lock
 *.egg-info/

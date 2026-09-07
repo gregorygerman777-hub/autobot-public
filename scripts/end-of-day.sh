@@ -8,6 +8,9 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Unattended: no operator can approve actions in-band. See docs/THREAT-MODEL.md.
+export AUTOBOT_MODE=autonomous
 TODAY=$(date +%Y-%m-%d)
 SESSION_LOG="$PROJECT_DIR/data/sessions/$TODAY.jsonl"
 JOURNAL_FILE="$PROJECT_DIR/data/memory/journal/$TODAY.md"
