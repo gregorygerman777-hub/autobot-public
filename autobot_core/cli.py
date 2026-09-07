@@ -10,6 +10,8 @@ Usage:
     python -m autobot_core.cli guard --action gmail.send --untrusted
     python -m autobot_core.cli triage --file inbox.json
     python -m autobot_core.cli registry
+    python -m autobot_core.cli memory-consolidate --root data/memory --dry-run
+    python -m autobot_core.cli memory-status
 """
 
 from __future__ import annotations
@@ -22,6 +24,8 @@ from datetime import date, datetime
 
 from . import actions as act
 from . import trust
+from .memory import consolidate as memory_consolidate
+from .memory.consolidate import status as memory_status
 from .triage import Message, triage_all
 
 
@@ -151,6 +155,24 @@ def _cmd_registry(args: argparse.Namespace) -> int:
     return 0
 
 
+def _default_memory_root() -> str:
+    return "data/memory"
+
+
+def _cmd_memory_consolidate(args: argparse.Namespace) -> int:
+    from datetime import date as _date
+
+    since = _date.fromisoformat(args.since) if args.since else None
+    report = memory_consolidate(args.root, dry_run=args.dry_run, since=since)
+    _emit(report.to_dict())
+    return 0
+
+
+def _cmd_memory_status(args: argparse.Namespace) -> int:
+    _emit(memory_status(args.root))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="autobot_core.cli",
@@ -179,6 +201,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_reg = sub.add_parser("registry", help="Dump the action registry")
     p_reg.set_defaults(func=_cmd_registry)
+
+    p_cons = sub.add_parser(
+        "memory-consolidate",
+        help="Review episodic entries and update semantic memory",
+    )
+    p_cons.add_argument("--root", default=_default_memory_root())
+    p_cons.add_argument("--dry-run", action="store_true")
+    p_cons.add_argument("--since", default=None, help="Override watermark, YYYY-MM-DD")
+    p_cons.set_defaults(func=_cmd_memory_consolidate)
+
+    p_mstat = sub.add_parser(
+        "memory-status", help="Report episodic backlog and consolidation watermark"
+    )
+    p_mstat.add_argument("--root", default=_default_memory_root())
+    p_mstat.set_defaults(func=_cmd_memory_status)
 
     return parser
 
