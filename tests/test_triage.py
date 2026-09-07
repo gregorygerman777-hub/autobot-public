@@ -63,6 +63,52 @@ class TestP0(unittest.TestCase):
         )
 
 
+class TestRubricPrecedence(unittest.TestCase):
+    """Regressions found by the evaluation harness (evals/runner.py)."""
+
+    def test_suffixed_meeting_change_is_detected(self):
+        # "rescheduled" never matched, because the stem "reschedul" carried a
+        # trailing \b that no suffixed form can satisfy.
+        self.assertEqual(
+            score(
+                sender="pm@corp.com",
+                subject="Standup moved",
+                body="Our standup today has been rescheduled to 3pm.",
+                recipients=["me@x.com"],
+                sender_is_known_contact=True,
+            ),
+            Priority.P0,
+        )
+
+    def test_scheduling_ask_as_question_is_not_p0(self):
+        # The original prose rubric listed "direct questions" (P0) and
+        # "scheduling asks" (P1) without resolving the overlap. The more
+        # specific category wins unless it concerns today.
+        self.assertEqual(
+            score(
+                sender="pm@corp.com",
+                subject="Next week",
+                body="Can we move our Thursday sync to Friday instead?",
+                recipients=["me@x.com"],
+                sender_is_known_contact=True,
+            ),
+            Priority.P1,
+        )
+
+    def test_non_scheduling_question_still_p0(self):
+        # The fix must not demote genuine urgent questions.
+        self.assertEqual(
+            score(
+                sender="alex@corp.com",
+                subject="Quick one",
+                body="Can you confirm whether the API keys rotated?",
+                recipients=["me@x.com"],
+                sender_is_known_contact=True,
+            ),
+            Priority.P0,
+        )
+
+
 class TestP1(unittest.TestCase):
     def test_review_request(self):
         self.assertEqual(

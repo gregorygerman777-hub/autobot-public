@@ -1,0 +1,13 @@
+timestamp,commit,suite,total,passed,accuracy,failures
+2026-09-07T16:24:01,7c0f573,briefing_flow,6,5,0.8333,ambiguous-conflict-defers
+2026-09-07T16:24:01,7c0f573,calendar_conflicts,12,12,1.0000,
+2026-09-07T16:24:01,7c0f573,inbox_triage,25,23,0.9200,p0-meeting-moved-today|p1-reschedule-not-today
+2026-09-07T16:24:01,7c0f573,OVERALL,43,40,0.9302,
+2026-09-07T16:26:24,7c0f573,briefing_flow,6,6,1.0000,
+2026-09-07T16:26:24,7c0f573,calendar_conflicts,12,12,1.0000,
+2026-09-07T16:26:24,7c0f573,inbox_triage,25,25,1.0000,
+2026-09-07T16:26:24,7c0f573,OVERALL,43,43,1.0000,
+2026-09-07T16:26:24,7c0f573,briefing_flow,6,6,1.0000,
+2026-09-07T16:26:24,7c0f573,calendar_conflicts,12,12,1.0000,
+2026-09-07T16:26:24,7c0f573,inbox_triage,25,25,1.0000,
+2026-09-07T16:26:24,7c0f573,OVERALL,43,43,1.0000,

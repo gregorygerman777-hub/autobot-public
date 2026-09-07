@@ -176,7 +176,13 @@ effect. If an action is blocked, report that you wanted to take it and why.
 ## Testing
 
 ```bash
-./scripts/run-tests.sh        # 58 offline tests, no credentials needed
+./scripts/run-tests.sh        # 111 unit tests, offline, no credentials
+./scripts/run-evals.sh        # 43 scenarios, reports accuracy vs known answers
 ```
 
-CI runs this on every push (`.github/workflows/tests.yml`).
+Both run in CI on every push (`.github/workflows/tests.yml`). The eval harness
+gates on accuracy, so a change that degrades triage quality without throwing
+fails the build. Accuracy history is tracked in `evals/results/history.csv`.
+
+Add scenarios by editing `evals/scenarios/*.json` — no code changes needed.
+See `docs/EVALUATION.md`.

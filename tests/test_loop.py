@@ -145,6 +145,30 @@ class TestBriefingChaining(unittest.TestCase):
         self.assertIn("note_conflict_for_operator", actions)
         self.assertNotIn("draft_conflict_message", actions)
 
+    def test_ambiguous_conflict_still_terminates(self):
+        """Regression: the ambiguous branch used to loop until the step limit.
+
+        The guard only checked whether `draft_conflict_message` had run, but the
+        ambiguous path calls `note_conflict_for_operator` instead, so the
+        condition stayed true forever. Found by the evaluation harness, not by
+        the original unit test, which asserted the action was taken but never
+        that the run ended.
+        """
+        events = [
+            Event("Option A", at(9), at(10), attendees=["x@a.com"]),
+            Event("Option B", at(9), at(10), attendees=["y@b.com"]),
+        ]
+        trace = self.run_briefing(events, [])
+        self.assertEqual(trace.stopped_reason, "reasoner finished")
+        self.assertLess(trace.step_count, 12)
+        self.assertEqual(
+            [s.action.name for s in trace.steps if s.action].count(
+                "note_conflict_for_operator"
+            ),
+            1,
+            "the conflict note must be recorded exactly once",
+        )
+
     def test_brief_contains_schedule_conflicts_and_triage(self):
         trace = self.run_briefing(
             conflicting_events(), [urgent_message(), injection_message()]

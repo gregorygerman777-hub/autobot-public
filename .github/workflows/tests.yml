@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        # Submodules are private/optional and not needed for these tests.
+        # Submodules are optional and not needed for these tests.
         with:
           submodules: false
 
@@ -18,15 +18,28 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Run test suite
+      - name: Unit tests
         run: ./scripts/run-tests.sh
+
+      - name: Evaluation harness
+        # Gates on accuracy rather than only on the tests passing, so a prompt
+        # or rule change that degrades triage quality fails CI even when nothing
+        # throws. --no-record keeps CI from writing history rows; the committed
+        # history is for real runs.
+        run: ./scripts/run-evals.sh --fail-under 1.0 --no-record
 
       - name: Lint
         run: |
           pipx install ruff || pip install ruff
-          ruff check autobot_core tests
+          ruff check autobot_core tests evals
 
-      - name: Verify action registry is loadable
+      - name: Verify CLI surface
         run: |
           PYTHONPATH=. python -m autobot_core.cli registry > /dev/null
-          echo "registry OK"
+          PYTHONPATH=. python -m autobot_core.cli memory-status --root /tmp/nonexistent > /dev/null
+          echo "CLI OK"
+
+      - name: Verify shell scripts parse
+        run: |
+          for f in scripts/*.sh autobot; do bash -n "$f" || exit 1; done
+          echo "shell OK"

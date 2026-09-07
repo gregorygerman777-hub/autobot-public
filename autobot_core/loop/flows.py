@@ -209,7 +209,13 @@ def briefing_reasoner(state: LoopState, trace: Trace) -> Decision:
     # --- the chained step: act on what the previous observation found ---
     conflicts: list[Conflict] = state.get("conflicts", [])
     serious = [c for c in conflicts if c.severity == "high"]
-    if serious and "draft_conflict_message" not in done:
+    # Either branch below settles the conflict, so the guard must cover both.
+    # Checking only the draft action left the ambiguous case looping until it
+    # hit the step limit.
+    conflict_handled = bool(
+        {"draft_conflict_message", "note_conflict_for_operator"} & done
+    )
+    if serious and not conflict_handled:
         conflict = serious[0]
         resolution = suggest_resolution(conflict)
         if resolution["action"] == "propose_move":

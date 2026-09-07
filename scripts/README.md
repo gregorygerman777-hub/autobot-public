@@ -11,7 +11,8 @@ Automation scripts for cron jobs. All scripts use `autobot -p` to run pi in non-
 | `end-of-day.sh` | Writes a journal entry summarizing the day's conversations and calendar | `0 22 * * *` |
 | `poll.sh` | Checks all inbound channels, sends Telegram alert only if something urgent | `*/10 * * * *` |
 | `consolidate-memory.sh` | Merges durable facts from journal entries into semantic memory | `30 22 * * *` |
-| `run-tests.sh` | Offline test suite (not a cron job — run manually or in CI) | N/A |
+| `run-tests.sh` | Offline unit tests (not a cron job — run manually or in CI) | N/A |
+| `run-evals.sh` | Evaluation harness: accuracy vs known-correct scenarios | N/A |
 | ~~`telegram-listener.py`~~ | Replaced by `pi-telebridge` extension — run `/telegram` in pi to enable | N/A |
 
 ## Setup

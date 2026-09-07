@@ -158,9 +158,11 @@ _SCHEDULING = re.compile(
     re.I,
 )
 
+# Suffixed forms matter here: "rescheduled" and "postponed" are the common
+# phrasings, and a trailing \b after a stem like "reschedul" never matches them.
 _MEETING_CHANGE = re.compile(
-    r"\b(reschedul|moved to|postpone|cancel(l?ed|ling)?|new time|time change|"
-    r"pushed (back|to)|shifting|relocat)\b",
+    r"\b(reschedul\w*|mov(?:e|ed|ing)|postpon\w*|cancel\w*|new time|time change|"
+    r"push(?:ed)? (?:back|to)|shift\w*|relocat\w*|different time|no longer at)\b",
     re.I,
 )
 
@@ -273,8 +275,15 @@ def _collect_signals(message: Message, today: date) -> list[Signal]:
     points_at_today = _mentions_today(text, message, today)
     if points_at_today and _DEADLINE_TERMS.search(text):
         signals.append(Signal.DEADLINE_TODAY)
-    if points_at_today and _MEETING_CHANGE.search(text) and _MEETING_CONTEXT.search(text):
-        signals.append(Signal.MEETING_CHANGE_TODAY)
+
+    changes_a_meeting = bool(_MEETING_CHANGE.search(text) and _MEETING_CONTEXT.search(text))
+    if changes_a_meeting:
+        # Same-day disruption is urgent; the same request about next Thursday is
+        # just a scheduling ask, which the rubric places at P1.
+        if points_at_today:
+            signals.append(Signal.MEETING_CHANGE_TODAY)
+        elif Signal.SCHEDULING_REQUEST not in signals:
+            signals.append(Signal.SCHEDULING_REQUEST)
 
     # --- Manipulation -----------------------------------------------------
     if _SELF_ASSERTED_URGENCY.search(text):
@@ -306,7 +315,16 @@ def _score(signals: list[Signal], scan: InjectionScan) -> tuple[Priority, str]:
         return Priority.P0, "Carries a deadline falling today."
     if has(Signal.MEETING_CHANGE_TODAY):
         return Priority.P0, "Changes a meeting scheduled for today."
-    if has(Signal.DIRECT_QUESTION) and has(Signal.KNOWN_CONTACT) and has(Signal.DIRECTLY_ADDRESSED):
+    if (
+        has(Signal.DIRECT_QUESTION)
+        and has(Signal.KNOWN_CONTACT)
+        and has(Signal.DIRECTLY_ADDRESSED)
+        # A scheduling ask phrased as a question is still a scheduling ask. The
+        # original rubric listed "direct questions" as P0 and "scheduling asks"
+        # as P1 without resolving the overlap; the more specific one wins unless
+        # it is about today, which the checks above already caught.
+        and not has(Signal.SCHEDULING_REQUEST)
+    ):
         return Priority.P0, "Direct question from a known contact, addressed to the user."
 
     # --- P1: someone wants something, but not on a same-day clock ----------
