@@ -1,0 +1,113 @@
+{
+  "suite": "calendar_conflicts",
+  "description": "Calendar situations with known-correct conflict detection and resolution. Exercises autobot_core.schedule, the same code the briefing loop uses.",
+  "cases": [
+    {
+      "id": "clear-day",
+      "expected": {"conflict_count": 0, "kinds": [], "resolution": null},
+      "events": [
+        {"title": "Standup", "start": "2026-09-07T09:00", "end": "2026-09-07T09:30"},
+        {"title": "Lunch", "start": "2026-09-07T12:00", "end": "2026-09-07T13:00"}
+      ]
+    },
+    {
+      "id": "double-booked-recurring-wins",
+      "expected": {"conflict_count": 1, "kinds": ["double_booked"], "resolution": "propose_move", "move": "1:1 with Alex"},
+      "note": "Recurring 3-person meeting is harder to move than a 1:1",
+      "events": [
+        {"title": "Team standup", "start": "2026-09-07T09:00", "end": "2026-09-07T09:30", "attendees": ["a", "b", "c"], "recurring": true},
+        {"title": "1:1 with Alex", "start": "2026-09-07T09:00", "end": "2026-09-07T09:30", "attendees": ["alex@corp.com"]}
+      ]
+    },
+    {
+      "id": "partial-overlap",
+      "expected": {"conflict_count": 1, "kinds": ["overlap"], "resolution": "propose_move", "move": "Coffee"},
+      "events": [
+        {"title": "Design review", "start": "2026-09-07T14:00", "end": "2026-09-07T15:00", "attendees": ["a", "b", "c", "d"]},
+        {"title": "Coffee", "start": "2026-09-07T14:30", "end": "2026-09-07T15:30", "attendees": ["e"]}
+      ]
+    },
+    {
+      "id": "ambiguous-equal-weight",
+      "expected": {"conflict_count": 1, "kinds": ["double_booked"], "resolution": "ask", "move": null},
+      "note": "Neither is clearly more fixed, so the user must choose",
+      "events": [
+        {"title": "Option A", "start": "2026-09-07T09:00", "end": "2026-09-07T10:00", "attendees": ["x@a.com"]},
+        {"title": "Option B", "start": "2026-09-07T09:00", "end": "2026-09-07T10:00", "attendees": ["y@b.com"]}
+      ]
+    },
+    {
+      "id": "back-to-back-same-location-ok",
+      "expected": {"conflict_count": 0, "kinds": [], "resolution": null},
+      "note": "Touching boundaries in the same room are not a conflict",
+      "events": [
+        {"title": "Sync A", "start": "2026-09-07T10:00", "end": "2026-09-07T11:00", "location": "Room 3"},
+        {"title": "Sync B", "start": "2026-09-07T11:00", "end": "2026-09-07T12:00", "location": "Room 3"}
+      ]
+    },
+    {
+      "id": "tight-transition-physical",
+      "expected": {"conflict_count": 1, "kinds": ["tight_transition"], "resolution": "flag", "move": null},
+      "note": "5 minutes between two different physical locations",
+      "events": [
+        {"title": "Dentist", "start": "2026-09-07T14:00", "end": "2026-09-07T15:00", "location": "Clinic on 5th"},
+        {"title": "Team sync", "start": "2026-09-07T15:05", "end": "2026-09-07T16:00", "location": "HQ Room 3"}
+      ]
+    },
+    {
+      "id": "tight-transition-both-virtual-ok",
+      "expected": {"conflict_count": 0, "kinds": [], "resolution": null},
+      "note": "Two Zoom calls need no travel time",
+      "events": [
+        {"title": "Call A", "start": "2026-09-07T14:00", "end": "2026-09-07T15:00", "location": "https://zoom.us/j/1"},
+        {"title": "Call B", "start": "2026-09-07T15:05", "end": "2026-09-07T16:00", "location": "https://meet.google.com/x"}
+      ]
+    },
+    {
+      "id": "all-day-does-not-conflict",
+      "expected": {"conflict_count": 0, "kinds": [], "resolution": null},
+      "note": "All-day markers are not commitments",
+      "events": [
+        {"title": "Company holiday", "start": "2026-09-07T00:00", "end": "2026-09-07T23:59", "all_day": true},
+        {"title": "Standup", "start": "2026-09-07T09:00", "end": "2026-09-07T09:30"}
+      ]
+    },
+    {
+      "id": "three-way-collision",
+      "expected": {"conflict_count": 3, "kinds": ["double_booked", "double_booked", "double_booked"], "resolution": "propose_move"},
+      "note": "Every pair among three simultaneous events collides",
+      "events": [
+        {"title": "A", "start": "2026-09-07T09:00", "end": "2026-09-07T10:00", "attendees": ["a", "b", "c"]},
+        {"title": "B", "start": "2026-09-07T09:00", "end": "2026-09-07T10:00", "attendees": ["d"]},
+        {"title": "C", "start": "2026-09-07T09:00", "end": "2026-09-07T10:00", "attendees": ["e"]}
+      ]
+    },
+    {
+      "id": "contained-event",
+      "expected": {"conflict_count": 1, "kinds": ["overlap"], "resolution": "propose_move", "move": "Quick call"},
+      "note": "A short meeting entirely inside a long one",
+      "events": [
+        {"title": "Offsite", "start": "2026-09-07T09:00", "end": "2026-09-07T17:00", "attendees": ["a", "b", "c", "d", "e"]},
+        {"title": "Quick call", "start": "2026-09-07T13:00", "end": "2026-09-07T13:30", "attendees": ["f"]}
+      ]
+    },
+    {
+      "id": "adjacent-no-location-info",
+      "expected": {"conflict_count": 0, "kinds": [], "resolution": null},
+      "note": "Without locations we cannot claim a transition is too tight",
+      "events": [
+        {"title": "Meeting A", "start": "2026-09-07T10:00", "end": "2026-09-07T11:00"},
+        {"title": "Meeting B", "start": "2026-09-07T11:05", "end": "2026-09-07T12:00"}
+      ]
+    },
+    {
+      "id": "recurring-beats-larger-nonrecurring",
+      "expected": {"conflict_count": 1, "kinds": ["double_booked"], "resolution": "propose_move", "move": "Standup"},
+      "note": "Attendee count dominates recurrence in the weighting",
+      "events": [
+        {"title": "Standup", "start": "2026-09-07T09:00", "end": "2026-09-07T09:30", "attendees": ["a"], "recurring": true},
+        {"title": "All hands", "start": "2026-09-07T09:00", "end": "2026-09-07T09:30", "attendees": ["a", "b", "c", "d", "e", "f"]}
+      ]
+    }
+  ]
+}

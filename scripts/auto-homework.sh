@@ -8,6 +8,9 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+# Unattended: no operator can approve actions in-band. See docs/THREAT-MODEL.md.
+export AUTOBOT_MODE=autonomous
+
 cd "$PROJECT_DIR"
 autobot -p "Check MyCompass for assignments due in the next 3 days. For each assignment:
 1. Check if I've already completed it (look in data/output/schoolwork/ for matching files)
